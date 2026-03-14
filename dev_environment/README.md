@@ -1,181 +1,68 @@
-# Claude Auth on Iximiuz Labs Playground
+## Dev Environment (Iximiuz Labs)
 
-These instructions cover authenticating Claude Code CLI and the VS Code Claude
-extension with a **Claude.ai Pro subscription** inside an Iximiuz Labs
-`coding-agent-base` playground, using the in-browser VS Code.
+This plugin is developed in a disposable [Iximiuz Labs Coding Agent Base](https://labs.iximiuz.com/playgrounds/coding-agent-base) playground. The setup is designed so each fresh session takes under a minute to get coding.
 
-## New Session Workflow
-```
-1. labctl playground start <name>          # or open in browser
-2. In sandbox terminal: ./setup.sh         # installs Claude Code ext + anything else
-3. On laptop: ./claude-auth.sh <id>        # handles OAuth
-4. Code                                    # you're ready
----
+### Prerequisites (one-time, on your machine)
 
-## First Time Setup (do this once on your laptop)
+- [`labctl`](https://labs.iximiuz.com/docs/playgrounds/how-to-use-playgrounds#cli) installed and authenticated
+- `claude-auth.sh` from this repo in a convenient location (e.g. `~/scripts/`)
 
-### 1. Install `labctl`
+### Session workflow
 
+**1. Start the playground**
+
+In the browser, go to the [Coding Agent Base playground](https://labs.iximiuz.com/playgrounds/coding-agent-base), enter this repo URL in the Repository field, and click Start. The repo will be cloned to `~/workspace` automatically.
+
+Or via CLI:
 ```bash
-curl -sf https://labs.iximiuz.com/cli/install.sh | sh
+labctl playground start coding-agent-base --open
 ```
 
-Restart your terminal, then verify:
+**2. Open the IDE tab**
 
+Click the IDE tab. Wait a few seconds for it to fully load, this initializes `code-server`.
+
+**3. Run setup**
+
+In the playground terminal:
 ```bash
-labctl version
+bash ~/workspace/dev_environment/setup.sh
 ```
 
-### 2. Authenticate `labctl` with your Iximiuz account
+This will:
+- Install the Claude Code for VS Code extension
+- Run `npm install`
 
-```bash
-labctl auth login
-```
-
-This opens a browser page. Complete the login flow. You only need to do this once.
-
-### 3. Make `claude-auth.sh` executable
-
-Run this from the root of the repo `./obsidian_library_catalog`
-
-```bash
-chmod +x ./dev_environment/claude_auth.sh
-```
-
-> `claude-auth.sh` handles OAuth port-forwarding
-> automatically — you never need to know which port Claude picks.
-
----
-
-## Starting a Persistent Playground
-
-Use this when you have an existing playground you want to resume.
-
-### 1. Find your playground ID
-
-```bash
-labctl playground list
-```
-
-Note the ID of your `coding-agent-base` playground (looks like `coding-agent-base-abc123`).
-
-### 2. Resume the playground
-
-```bash
-labctl playground restart <playground-id>
-```
-
-> If it's already running, this is a no-op — safe to run either way.
-
-### 3. Open it in the browser
-
-Go to [labs.iximiuz.com/playgrounds](https://labs.iximiuz.com/playgrounds), find your
-playground, and click **Open**. Use the in-browser VS Code tab for editing.
-
-### 4. Authenticate Claude (if not already authenticated)
-
-In a terminal **on your laptop**, run:
-
-```bash
-./dev_environment/claude-auth.sh <playground-id>
-```
-
-Then, **inside the sandbox** (browser terminal or VS Code terminal), trigger auth:
-
-- **Claude Code CLI:** run `claude` and choose the Claude.ai / OAuth login option
-- **VS Code extension:** open the Claude extension panel and click Sign In
-
-Your laptop browser will open the OAuth page. Complete it. The tunnel closes itself when done.
-
-### 5. Verify auth inside the sandbox
-
-```bash
-claude --version
-claude -p "say hello"
-```
-
----
-
-## Starting a Fresh Playground
-
-Use this when you want a clean environment each session.
-
-### 1. Start a new playground
-
-```bash
-labctl playground start coding-agent-base --ssh
-```
-
-The `--ssh` flag drops you into an SSH session immediately once it's booted.
-Note the playground ID printed in the output.
-
-Alternatively, start it from the browser at:
-[labs.iximiuz.com/playgrounds/coding-agent-base](https://labs.iximiuz.com/playgrounds/coding-agent-base)
-
-### 2. Clone your plugin repo into the workspace
-
-Inside the sandbox terminal:
-
-```bash
-cd ~/workspace
-git clone https://github.com/<your-username>/obsidian_library_catalog.git
-cd obsidian_library_catalog
-npm install
-```
-
-### 3. Authenticate Claude
+**4. Authenticate Claude**
+Note: this assumes local machine is macOS and preferred browser Safari.
 
 On your laptop:
-
 ```bash
-./dev_environment/claude-auth.sh <new-playground-id>
+./claude-auth.sh <playground-id>
 ```
 
-Then trigger the auth flow inside the sandbox (same as persistent steps above).
+Follow the prompts the script detects Claude's OAuth callback port, forwards it via `labctl`, and opens the auth URL in Safari automatically.
 
-### 4. Open in-browser VS Code
+**5. Reload IDE**
 
-In the playground UI, switch to the VS Code tab. Your `~/workspace` directory
-will already be the working folder.
-
-### 5. After your session — push changes
-
-Before destroying or letting the playground expire, commit and push:
-
-```bash
-cd ~/workspace/<your-plugin-repo>
-git add -A
-git commit -m "wip: session notes"
-git push
-```
-
-> Fresh playgrounds do not persist disk state. Always push before closing.
+Reload the IDE tab in the browser. The Claude Code extension will be active and authenticated.
 
 ---
 
-## Re-authenticating Claude (auth expired or new playground)
+### What's in `dev_environment/`
 
-Claude's OAuth credentials live in `~/.claude/` inside the sandbox VM.
-They do not survive a fresh playground. Run this any time auth stops working:
+| File | Purpose | Where it runs |
+|------|---------|---------------|
+| `setup.sh` | Installs extensions, runs npm install | Inside sandbox |
+| `claude-auth.sh` | Handles Claude OAuth flow | On your laptop |
 
-```bash
-# On your laptop:
-~/scripts/claude-auth.sh <playground-id>
+### Future automation backlog
 
-# Then inside the sandbox, re-trigger the login:
-claude   # choose OAuth / Claude.ai login
-```
+Items to add to `setup.sh` as needs grow:
 
----
-
-## Notes
-
-- **`claude-auth.sh` detects the port automatically.** Claude picks a random
-  localhost port for its OAuth callback each time — the script watches for it,
-  forwards it, and tears the tunnel down when auth completes.
-
-- **`claude-auth.sh` only requires `labctl` on your laptop.**
-
-- **For plugin UI validation:** since Obsidian has no GUI in the sandbox, use
-  Obsidian Sync to push built plugin files to a test vault on your local laptop.
-  The sandbox handles building; your laptop handles visual testing.
+| # | Item | Notes |
+|---|------|-------|
+| 1 | More VS Code extensions | Add IDs to `VSCODE_EXTENSIONS` array in `setup.sh` |
+| 2 | `settings.json` / keybindings | Commit to `dev_environment/`, copy to `~/.local/share/code-server/User/` in `setup.sh` |
+| 3 | Shell dotfiles / aliases | Add a dotfiles section to `setup.sh` |
+| 4 | Custom playground image | Once `setup.sh` is stable, bake into a Dockerfile so setup is instant at boot |
