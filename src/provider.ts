@@ -46,14 +46,14 @@ class RateLimiter {
     // Evict timestamps outside the current window
     while (
       this.timestamps.length > 0 &&
-      this.timestamps[0] <= now - this.WINDOW_MS
+      this.timestamps[0]! <= now - this.WINDOW_MS
     ) {
       this.timestamps.shift();
     }
 
     // If at the limit, wait until the oldest timestamp falls outside the window
     if (this.timestamps.length >= this.maxRequests) {
-      const waitTime = this.timestamps[0] + this.WINDOW_MS - now;
+      const waitTime = this.timestamps[0]! + this.WINDOW_MS - now;
       await new Promise((resolve) => setTimeout(resolve, waitTime));
     }
 
