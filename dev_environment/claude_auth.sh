@@ -18,7 +18,7 @@
 
 set -euo pipefail
 
-# ── Colours ──────────────────────────────────────────────────────────────────
+# -- Colours ------------------------------------------------------------------
 BOLD='\033[1m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
@@ -31,7 +31,7 @@ success() { echo -e "${GREEN}[claude-auth]${RESET} $*"; }
 warn()    { echo -e "${YELLOW}[claude-auth]${RESET} $*"; }
 error()   { echo -e "${RED}[claude-auth]${RESET} $*" >&2; }
 
-# ── Args ─────────────────────────────────────────────────────────────────────
+# -- Args ---------------------------------------------------------------------
 if [[ $# -lt 1 ]]; then
   error "Usage: $0 <playground-id>"
   error "Find your playground ID with: labctl playground list"
@@ -40,7 +40,7 @@ fi
 
 PLAYGROUND_ID="$1"
 
-# ── Preflight checks ─────────────────────────────────────────────────────────
+# -- Preflight checks ---------------------------------------------------------
 if ! command -v labctl &>/dev/null; then
   error "labctl not found. Install it with:"
   error "  curl -sf https://labs.iximiuz.com/cli/install.sh | sh"
@@ -55,12 +55,11 @@ if ! labctl ssh "$PLAYGROUND_ID" -- echo "ok" &>/dev/null; then
 fi
 success "Playground is up."
 
-# ── Port detection ────────────────────────────────────────────────────────────
+# -- Port detection -----------------------------------------------------------
 # Claude CLI and the VS Code extension both bind a short-lived localhost server
 # to receive the OAuth redirect. The port is chosen dynamically each time.
-# We poll ss/netstat inside the sandbox until we see it appear.
+# We poll ss inside the sandbox until we see a new port appear.
 
-CLAUDE_AUTH_PORT_PATTERN="127\.0\.0\.1:[0-9]\+"   # any localhost port
 FORWARD_PID=""
 
 cleanup() {
@@ -90,11 +89,11 @@ detect_claude_port() {
 info "Snapshotting pre-existing sandbox ports..."
 PORTS_BEFORE=$(detect_claude_port || true)
 
-# ── Instructions ─────────────────────────────────────────────────────────────
+# -- Instructions -------------------------------------------------------------
 echo ""
-echo -e "${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${RESET}"
+echo -e "${BOLD}-------------------------------------------------------------${RESET}"
 echo -e "${BOLD} Claude OAuth Auth Helper${RESET}"
-echo -e "${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${RESET}"
+echo -e "${BOLD}-------------------------------------------------------------${RESET}"
 echo ""
 echo -e "Now go into your sandbox and trigger Claude auth. For example:"
 echo ""
@@ -102,15 +101,15 @@ echo -e "  ${BOLD}Claude Code CLI:${RESET}"
 echo -e "  ${CYAN}  claude${RESET}   (then choose 'Claude.ai Pro' / OAuth login)"
 echo ""
 echo -e "  ${BOLD}VS Code extension:${RESET}"
-echo -e "  ${CYAN}  Open VS Code → Claude extension → Sign in with Claude.ai${RESET}"
+echo -e "  ${CYAN}  Open VS Code -> Claude extension -> Sign in with Claude.ai${RESET}"
 echo ""
 echo -e "This script will detect the callback port and forward it automatically."
 echo -e "Once your browser completes the OAuth flow, the tunnel closes itself."
 echo ""
-echo -e "${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${RESET}"
+echo -e "${BOLD}-------------------------------------------------------------${RESET}"
 echo ""
 
-# ── Wait for new port ─────────────────────────────────────────────────────────
+# -- Wait for new port --------------------------------------------------------
 info "Waiting for Claude to open its OAuth callback port in the sandbox..."
 
 NEW_PORT=""
@@ -120,7 +119,6 @@ POLL_INTERVAL=1
 
 while [[ -z "$NEW_PORT" && $ELAPSED -lt $TIMEOUT ]]; do
   PORTS_NOW=$(detect_claude_port || true)
-  # Find ports that are in PORTS_NOW but not in PORTS_BEFORE
   NEW_PORT=$(comm -13 \
     <(echo "$PORTS_BEFORE" | sort) \
     <(echo "$PORTS_NOW"   | sort) \
@@ -139,8 +137,8 @@ fi
 
 success "Detected OAuth callback port: ${BOLD}${NEW_PORT}${RESET}"
 
-# ── Start port-forward ────────────────────────────────────────────────────────
-info "Starting port-forward: localhost:${NEW_PORT} → sandbox:${NEW_PORT}"
+# -- Start port-forward -------------------------------------------------------
+info "Starting port-forward: localhost:${NEW_PORT} -> sandbox:${NEW_PORT}"
 labctl port-forward "$PLAYGROUND_ID" -L "${NEW_PORT}:${NEW_PORT}" &
 FORWARD_PID=$!
 sleep 1  # give labctl a moment to establish the tunnel
@@ -153,24 +151,39 @@ fi
 success "Tunnel is live."
 echo ""
 
-# ── Get the OAuth URL and open it locally ────────────────────────────────────
+# -- Get the OAuth URL and open it locally ------------------------------------
 # Claude Code prints the URL to the sandbox terminal but can't open a browser
-# (headless VM). Paste the full URL here on your laptop instead — no
-# line-wrapping, no truncation — and this script hands it straight to Safari.
+# (headless VM). Paste the full URL here on your laptop instead.
+#
+# The sandbox terminal wraps long lines visually, so copying from it
+# introduces newlines mid-URL. We strip all whitespace after pasting
+# so Safari receives a clean, unbroken URL.
 echo ""
-echo -e "${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${RESET}"
+echo -e "${BOLD}-------------------------------------------------------------${RESET}"
 echo -e " In the sandbox, Claude will show:"
 echo -e "   ${CYAN}Browser didn't open? Use the url below to sign in${RESET}"
 echo ""
 echo -e " Copy that full URL, paste it below, and press ${BOLD}Enter${RESET}."
-echo -e " This terminal opens Safari for you — no truncation issues."
-echo -e "${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${RESET}"
+echo -e " This terminal strips line-wrap artifacts and opens Safari cleanly."
+echo -e "${BOLD}-------------------------------------------------------------${RESET}"
 echo ""
-echo -ne "${BOLD}Paste URL → ${RESET}"
+echo -ne "${BOLD}Paste URL: ${RESET}"
 read -r OAUTH_URL
 
+# Strip ALL whitespace (spaces, newlines, carriage returns) introduced by
+# terminal line-wrapping when copying from the sandbox
+OAUTH_URL=$(printf '%s' "$OAUTH_URL" | tr -d '[:space:]')
+
 if [[ -z "$OAUTH_URL" ]]; then
-  warn "No URL provided. Tunnel is still live — re-run and paste the URL when ready."
+  warn "No URL provided. Tunnel is still live -- re-run and paste the URL when ready."
+  exit 1
+fi
+
+# Validate it looks like the right URL before handing to Safari
+if [[ "$OAUTH_URL" != https://claude.ai/oauth/authorize* ]]; then
+  warn "URL doesn't look right (expected https://claude.ai/oauth/authorize...)."
+  warn "Got: ${OAUTH_URL:0:80}..."
+  warn "Try copying again -- make sure you get the full line from the sandbox."
   exit 1
 fi
 
@@ -181,7 +194,7 @@ warn "Complete the OAuth flow in your browser now."
 warn "This script will close the tunnel once auth is done (port disappears)."
 echo ""
 
-# ── Wait for auth to complete ─────────────────────────────────────────────────
+# -- Wait for auth to complete ------------------------------------------------
 # Claude's local callback server shuts down after receiving the redirect.
 # We detect this by watching for the port to disappear from the sandbox.
 AUTH_TIMEOUT=300  # 5 minutes to complete browser flow
@@ -200,7 +213,7 @@ done
 
 if [[ $ELAPSED -ge $AUTH_TIMEOUT ]]; then
   warn "Timed out waiting for auth to complete."
-  warn "If you finished in the browser, auth may still have worked — check inside the sandbox."
+  warn "If you finished in the browser, auth may still have worked -- check inside the sandbox."
 fi
 
 # cleanup() runs on EXIT and kills the forward
