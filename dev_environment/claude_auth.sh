@@ -10,10 +10,12 @@
 #   ./claude-auth.sh my-playground-abc123
 #
 # What it does:
-#   1. Watches the sandbox for whatever port Claude opens for its OAuth callback
-#   2. Forwards that port to your laptop so the browser redirect works
+#   1. Snapshots which ports are already open in the sandbox before you trigger auth
+#   2. Polls every second until a new localhost port appears (that's Claude's callback server)
+#   3. Forwards that port to your laptop into the sandbox via labctl port-forward so the browser redirect works
 #   3. Prompts you to trigger auth inside the sandbox (CLI or VS Code)
-#   4. Detects when auth completes and tears down the tunnel automatically
+#   4. Watches for the port to disappear (Claude's server closes after receiving the redirect)
+#   5. Tears down the tunnel automatically
 
 set -euo pipefail
 
