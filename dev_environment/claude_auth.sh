@@ -13,10 +13,8 @@
 #   1. Snapshots which ports are already open in the sandbox before you trigger auth
 #   2. Polls every second until a new localhost port appears (that's Claude's callback server)
 #   3. Forwards that port to your laptop into the sandbox via labctl port-forward so the browser redirect works
-#   3. Prompts you to trigger auth inside the sandbox (CLI or VS Code)
 #   4. Watches for the port to disappear (Claude's server closes after receiving the redirect)
 #   5. Tears down the tunnel automatically
-
 set -euo pipefail
 
 # ── Colours ──────────────────────────────────────────────────────────────────
@@ -78,11 +76,12 @@ detect_claude_port() {
   # List LISTEN ports on localhost inside the sandbox, filter out well-known
   # ports that are always present (22 SSH, etc.), and look for something new
   # that appeared after we started watching.
+  # Uses awk only (no grep -P) for macOS BSD grep compatibility.
   labctl ssh "$PLAYGROUND_ID" -- \
     ss -tlnH 'src 127.0.0.1' 2>/dev/null \
     | awk '{print $4}' \
-    | grep -oP '(?<=:)\d+$' \
-    | grep -v '^22$' \
+    | awk -F: '{print $NF}' \
+    | awk '$1 != 22 && $1 ~ /^[0-9]+$/ {print $1}' \
     | sort -n
 }
 
