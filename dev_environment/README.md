@@ -71,7 +71,7 @@ playground, and click **Open**. Use the in-browser VS Code tab for editing.
 In a terminal **on your laptop**, run:
 
 ```bash
-~/scripts/claude-auth.sh <playground-id>
+./dev_environment/claude-auth.sh <playground-id>
 ```
 
 Then, **inside the sandbox** (browser terminal or VS Code terminal), trigger auth:
@@ -122,7 +122,7 @@ npm install
 On your laptop:
 
 ```bash
-~/scripts/claude-auth.sh <new-playground-id>
+./dev_environment/claude-auth.sh <new-playground-id>
 ```
 
 Then trigger the auth flow inside the sandbox (same as persistent steps above).
