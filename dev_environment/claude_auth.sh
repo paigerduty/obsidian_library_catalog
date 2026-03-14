@@ -15,6 +15,7 @@
 #   3. Forwards that port to your laptop into the sandbox via labctl port-forward so the browser redirect works
 #   4. Watches for the port to disappear (Claude's server closes after receiving the redirect)
 #   5. Tears down the tunnel automatically
+
 set -euo pipefail
 
 # ── Colours ──────────────────────────────────────────────────────────────────
@@ -149,7 +150,32 @@ if ! kill -0 "$FORWARD_PID" 2>/dev/null; then
   exit 1
 fi
 
-success "Tunnel is live. Your browser redirect will now reach the sandbox."
+success "Tunnel is live."
+echo ""
+
+# ── Get the OAuth URL and open it locally ────────────────────────────────────
+# Claude Code prints the URL to the sandbox terminal but can't open a browser
+# (headless VM). Paste the full URL here on your laptop instead — no
+# line-wrapping, no truncation — and this script hands it straight to Safari.
+echo ""
+echo -e "${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${RESET}"
+echo -e " In the sandbox, Claude will show:"
+echo -e "   ${CYAN}Browser didn't open? Use the url below to sign in${RESET}"
+echo ""
+echo -e " Copy that full URL, paste it below, and press ${BOLD}Enter${RESET}."
+echo -e " This terminal opens Safari for you — no truncation issues."
+echo -e "${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${RESET}"
+echo ""
+echo -ne "${BOLD}Paste URL → ${RESET}"
+read -r OAUTH_URL
+
+if [[ -z "$OAUTH_URL" ]]; then
+  warn "No URL provided. Tunnel is still live — re-run and paste the URL when ready."
+  exit 1
+fi
+
+info "Opening in Safari..."
+open "$OAUTH_URL"
 echo ""
 warn "Complete the OAuth flow in your browser now."
 warn "This script will close the tunnel once auth is done (port disappears)."
