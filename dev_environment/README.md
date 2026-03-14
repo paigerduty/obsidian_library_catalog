@@ -4,6 +4,12 @@ These instructions cover authenticating Claude Code CLI and the VS Code Claude
 extension with a **Claude.ai Pro subscription** inside an Iximiuz Labs
 `coding-agent-base` playground, using the in-browser VS Code.
 
+## New Session Workflow
+```
+1. labctl playground start <name>          # or open in browser
+2. In sandbox terminal: ./setup.sh         # installs Claude Code ext + anything else
+3. On laptop: ./claude-auth.sh <id>        # handles OAuth
+4. Code                                    # you're ready
 ---
 
 ## First Time Setup (do this once on your laptop)
