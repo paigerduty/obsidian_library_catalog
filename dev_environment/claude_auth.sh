@@ -149,29 +149,33 @@ if ! kill -0 "$FORWARD_PID" 2>/dev/null; then
 fi
 
 success "Tunnel is live."
-echo ""
 
 # -- Get the OAuth URL and open it locally ------------------------------------
 # Claude Code prints the URL to the sandbox terminal but can't open a browser
-# (headless VM). Paste the full URL here on your laptop instead.
+# (headless VM). Paste it here instead.
 #
-# The sandbox terminal wraps long lines visually, so copying from it
-# introduces newlines mid-URL. We strip all whitespace after pasting
-# so Safari receives a clean, unbroken URL.
+# IMPORTANT: the sandbox terminal wraps long lines, so copying produces a
+# multi-line paste. We read until a blank line (press Enter twice) so we
+# capture all the fragments, then strip whitespace to reassemble the URL.
 echo ""
 echo -e "${BOLD}-------------------------------------------------------------${RESET}"
 echo -e " In the sandbox, Claude will show:"
 echo -e "   ${CYAN}Browser didn't open? Use the url below to sign in${RESET}"
 echo ""
-echo -e " Copy that full URL, paste it below, and press ${BOLD}Enter${RESET}."
-echo -e " This terminal strips line-wrap artifacts and opens Safari cleanly."
+echo -e " Copy that URL, paste it below, then press ${BOLD}Enter twice${RESET} (blank line)."
+echo -e " The wrapped lines will be reassembled into a clean URL for Safari."
 echo -e "${BOLD}-------------------------------------------------------------${RESET}"
 echo ""
-echo -ne "${BOLD}Paste URL: ${RESET}"
-read -r OAUTH_URL
+echo -e "${BOLD}Paste URL (then Enter twice):${RESET}"
 
-# Strip ALL whitespace (spaces, newlines, carriage returns) introduced by
-# terminal line-wrapping when copying from the sandbox
+# Read multiple lines until a blank line, then join them
+OAUTH_URL=""
+while IFS= read -r line; do
+  [[ -z "$line" ]] && break
+  OAUTH_URL="${OAUTH_URL}${line}"
+done
+
+# Strip all remaining whitespace (spaces, stray CRs, etc.)
 OAUTH_URL=$(printf '%s' "$OAUTH_URL" | tr -d '[:space:]')
 
 if [[ -z "$OAUTH_URL" ]]; then
@@ -183,7 +187,7 @@ fi
 if [[ "$OAUTH_URL" != https://claude.ai/oauth/authorize* ]]; then
   warn "URL doesn't look right (expected https://claude.ai/oauth/authorize...)."
   warn "Got: ${OAUTH_URL:0:80}..."
-  warn "Try copying again -- make sure you get the full line from the sandbox."
+  warn "Try copying again -- make sure you get all the lines from the sandbox."
   exit 1
 fi
 
